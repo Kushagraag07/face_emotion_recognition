@@ -4,3 +4,11 @@ opencv-python
 deepface
 python-multipart
 tf-keras
+face-recognition
+Pillow
+mediapipe
+tensorflow
+numpy
+scikit-image
+imutils
+dlib
