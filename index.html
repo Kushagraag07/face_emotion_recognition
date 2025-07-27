@@ -291,6 +291,46 @@
       linkElement.click();
     }
     
+    async function sendFrameToBackend() {
+      // Create a temporary canvas to capture the current video frame
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Convert the canvas to a Blob (JPEG)
+      tempCanvas.toBlob(async (blob) => {
+        if (!blob) return;
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('file', blob, 'frame.jpg');
+
+        // Send to backend
+        try {
+          const response = await fetch('http://localhost:8000/analyze_emotion/', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.emotions) {
+            // Update the UI with backend emotions
+            Object.entries(data.emotions).forEach(([emotion, value]) => {
+              const bar = document.getElementById(`${emotion}-bar`);
+              const valueElement = document.getElementById(`${emotion}-value`);
+              if (bar && valueElement) {
+                bar.style.width = `${value}%`;
+                valueElement.textContent = `${value.toFixed(0)}%`;
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error sending frame to backend:', error);
+        }
+      }, 'image/jpeg', 0.95);
+    }
+    
     async function startVideo() {
       try {
         cameraButton.disabled = true;
@@ -330,6 +370,9 @@
           
           cameraButton.textContent = 'Restart Camera';
           cameraButton.disabled = false;
+          // Start sending frames to backend every 2 seconds
+          if (window.backendInterval) clearInterval(window.backendInterval);
+          window.backendInterval = setInterval(sendFrameToBackend, 2000);
         };
       } catch (error) {
         statusElement.textContent = `Error accessing camera: ${error.message}`;
